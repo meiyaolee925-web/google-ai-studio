@@ -75,7 +75,7 @@ export const translations = {
       other: "1. 请利用生成式AI工具，结合你的工作内容，制定一份工作流程优化/提效计划书\n2. 请你通过沟通让AI帮你写一篇自我介绍"
     },
     appQImages: {
-      ads_design: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=1000&auto=format&fit=crop"
+      ads_design: "/test pic.JPEG"
     },
     appQInstruction: "应用题要求：请根据上方题目，运用任意一个AI工具（如ChatGPT、豆包、DeepSeek等）完全由AI生成最终结果。您需要截图与AI对话、调优的过程，以及最终的结果，整合成一个PDF文件上传至下方。",
     fileUploaded: "已选择文件：",
@@ -179,7 +179,7 @@ export const translations = {
       other: "1. Please use generative AI tools, combined with your work content, to formulate a workflow optimization/efficiency improvement plan.\n2. Please communicate with AI to help you write a self-introduction."
     },
     appQImages: {
-      ads_design: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=1000&auto=format&fit=crop"
+      ads_design: "/test pic.JPEG"
     },
     appQInstruction: "Application Requirement: Based on the prompt above, use any AI tool (e.g., ChatGPT, Doubao, DeepSeek) to completely generate the final result. You need to screenshot the conversation and refinement process with the AI, as well as the final result, combine them into a single PDF file, and upload it below.",
     fileUploaded: "File selected: ",
