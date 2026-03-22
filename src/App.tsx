@@ -2,34 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Globe, Upload, CheckCircle2, ChevronRight, ChevronLeft, AlertCircle, Clock, Lock, Download, XCircle } from 'lucide-react';
 import { translations, correctAnswers } from './translations';
+import { checkDuplicate, submitTest, fetchRecords } from './services/api';
+import Timer from './components/Timer';
 
 type Language = 'zh' | 'en';
 type Step = 'intro' | 'info' | 'test-mcq' | 'test-app' | 'success' | 'admin';
 type Role = 'overseas_ads_optimizer_brand' | 'overseas_media_planner_brand' | 'overseas_ads_optimizer_perf' | 'overseas_game_am' | 'brand_planner' | 'overseas_media_ops' | 'overseas_ads_product' | 'cross_border_ecommerce' | 'ads_design' | 'tts_store_ops' | 'community_ops' | 'graphic_design' | 'settlement' | 'sales_bd' | 'game_brand_planner' | 'other' | '';
-
-const Timer = ({ minutes, onExpire, label }: { minutes: number, onExpire: () => void, label: string }) => {
-  const [timeLeft, setTimeLeft] = useState(minutes * 60);
-
-  useEffect(() => {
-    if (timeLeft <= 0) {
-      onExpire();
-      return;
-    }
-    const timer = setInterval(() => setTimeLeft(t => t - 1), 1000);
-    return () => clearInterval(timer);
-  }, [timeLeft, onExpire]);
-
-  const m = Math.floor(timeLeft / 60);
-  const s = timeLeft % 60;
-  
-  return (
-    <div className="flex items-center gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-lg font-medium border border-red-100">
-      <Clock className="w-4 h-4" />
-      <span>{label}:</span>
-      <span className="font-mono text-lg">{m}:{s.toString().padStart(2, '0')}</span>
-    </div>
-  );
-};
 
 export default function App() {
   const [lang, setLang] = useState<Language>('zh');
@@ -63,8 +41,7 @@ export default function App() {
 
   useEffect(() => {
     if (step === 'admin' && isAdminLoggedIn) {
-      fetch('/api/records')
-        .then(res => res.json())
+      fetchRecords()
         .then(data => setRecords(data))
         .catch(err => console.error(err));
     }
@@ -98,9 +75,8 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`/api/check?name=${encodeURIComponent(name.trim())}`);
-      const data = await res.json();
-      if (data.submitted) {
+      const isDuplicate = await checkDuplicate(name);
+      if (isDuplicate) {
         setErrors({ name: t.duplicateCandidate });
         return;
       }
@@ -179,25 +155,15 @@ export default function App() {
     }
 
     try {
-      const res = await fetch('/api/submit', {
-        method: 'POST',
-        body: formData
-      });
-      if (res.ok) {
-        setStep('success');
-      } else if (res.status === 400) {
-        const data = await res.json();
-        if (data.error === 'Duplicate submission within 24 hours') {
-          alert(t.duplicateCandidate);
-        } else {
-          alert('Submission failed. Please try again.');
-        }
+      await submitTest(formData);
+      setStep('success');
+    } catch (err: any) {
+      console.error(err);
+      if (err.message === 'Duplicate submission within 24 hours') {
+        alert(t.duplicateCandidate);
       } else {
         alert('Submission failed. Please try again.');
       }
-    } catch (err) {
-      console.error(err);
-      alert('Submission failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -640,24 +606,31 @@ export default function App() {
                 </div>
               ) : selectedRecord ? (
                 <div className="space-y-8">
-                  <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6 flex justify-between items-center">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-1">{selectedRecord.name}</h3>
-                      <div className="flex items-center gap-4 text-slate-500 font-medium">
-                        <span>{t.roles[selectedRecord.role as keyof typeof t.roles]}</span>
-                        <span>•</span>
-                        <span className="text-sm">{t.submittedAt}: {new Date(selectedRecord.submitted_at).toLocaleString()}</span>
+                  <div className="bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                    <div className="flex-1 min-w-0 w-full">
+                      <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-3 truncate">{selectedRecord.name}</h3>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 text-slate-600 font-medium">
+                        <div className="bg-slate-100 text-slate-700 px-3 py-1 rounded-lg text-sm inline-flex w-fit">
+                          {t.roles[selectedRecord.role as keyof typeof t.roles]}
+                        </div>
+                        <span className="hidden sm:inline text-slate-300">•</span>
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <Clock className="w-4 h-4" />
+                          <span>{t.submittedAt}: {new Date(selectedRecord.submitted_at).toLocaleString()}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right flex items-center gap-4">
+                    <div className="flex items-center gap-6 w-full lg:w-auto justify-between lg:justify-end border-t lg:border-t-0 border-slate-100 pt-6 lg:pt-0">
                       <button 
                         onClick={() => window.print()}
-                        className="print:hidden inline-flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
+                        className="print:hidden whitespace-nowrap flex-shrink-0 inline-flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 hover:border-slate-300 text-slate-700 px-5 py-2.5 rounded-xl font-medium transition-all shadow-sm"
                       >
                         <Download className="w-4 h-4" />
                         {t.downloadPdf}
                       </button>
-                      <div className="text-4xl font-black text-[#3354D4] ml-2">{selectedRecord.score} <span className="text-lg text-slate-400 font-medium">/ 100</span></div>
+                      <div className="text-5xl font-black text-[#3354D4] tracking-tight whitespace-nowrap">
+                        {selectedRecord.score} <span className="text-xl text-slate-400 font-medium tracking-normal">/ 100</span>
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-8">
